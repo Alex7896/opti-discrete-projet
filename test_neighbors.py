@@ -1,0 +1,205 @@
+from neighbors import intra_route_swap, intra_route_relocate
+from utils import solution_distance, route_distance
+from visualizer import Visualizer
+
+
+class NeighborhoodTest:
+    """Classe pour tester les opérations de voisinage (swap, relocate, etc.)"""
+
+    def __init__(self, solution, depot):
+        self.solution = solution
+        self.depot = depot
+        self.initial_distance = solution_distance(solution, depot)
+
+    def _print_route_clients(self, route):
+        """Affiche les IDs des clients dans une route"""
+        return [client.id for client in route.clients]
+
+    def _print_route_info(self, route, label=""):
+        """Affiche les informations détaillées d'une route"""
+        print(f"{label}")
+        print(f"  Clients : {self._print_route_clients(route)}")
+        print(f"  Charge : {route.load}/{route.capacity}")
+        print(f"  Distance : {route_distance(route, self.depot):.2f}")
+
+    def _compare_before_after(self, new_solution, operation_name):
+        """Compare la solution avant et après l'opération"""
+        new_distance = solution_distance(new_solution, self.depot)
+        improvement = self.initial_distance - new_distance
+
+        print(f"\n{'='*60}")
+        print(f"COMPARAISON - {operation_name}")
+        print(f"{'='*60}")
+        print(f"Distance avant : {self.initial_distance:.2f}")
+        print(f"Distance après : {new_distance:.2f}")
+        print(f"Différence : {improvement:+.2f} ({(improvement/self.initial_distance)*100:+.2f}%)")
+        if improvement > 0:
+            print("✅ AMÉLIORATION")
+        elif improvement < 0:
+            print("❌ DÉTÉRIORATION")
+        else:
+            print("➖ AUCUN CHANGEMENT")
+        print(f"{'='*60}\n")
+
+    def test_intra_route_swap(self, route_idx, i, j, visualize=False):
+        """
+        Test un swap intra-route.
+        
+        Args:
+            route_idx: Index de la route
+            i: Position du premier client
+            j: Position du second client
+            visualize: Si True, affiche la visualisation avant/après
+        """
+        route = self.solution.routes[route_idx]
+
+        print(f"\n{'='*60}")
+        print(f"TEST INTRA-ROUTE SWAP - Route {route_idx}")
+        print(f"{'='*60}")
+
+        # Validation
+        if i < 0 or j < 0 or i >= len(route.clients) or j >= len(route.clients):
+            print("❌ Indices invalides")
+            return None
+
+        if i == j:
+            print("⚠️ Les deux positions sont identiques")
+            return None
+
+        # Avant
+        client_i_id = route.clients[i].id
+        client_j_id = route.clients[j].id
+        print(f"\n📍 AVANT")
+        self._print_route_info(route, f"Route {route_idx}")
+        print(f"Position {i} : Client {client_i_id}")
+        print(f"Position {j} : Client {client_j_id}")
+
+        if visualize:
+            Visualizer.plot_single_route(self.solution, self.depot, route_idx)
+
+        # Opération
+        print(f"\n🔄 OPÉRATION")
+        print(f"Échange Position {i} (Client {client_i_id}) ↔️ Position {j} (Client {client_j_id})")
+
+        new_solution = intra_route_swap(self.solution, route_idx, i, j)
+
+        if new_solution is None:
+            print("❌ Swap impossible")
+            return None
+
+        # Après
+        new_route = new_solution.routes[route_idx]
+        print(f"\n📍 APRÈS")
+        self._print_route_info(new_route, f"Route {route_idx}")
+
+        if visualize:
+            Visualizer.plot_single_route(new_solution, self.depot, route_idx)
+
+        # Comparaison
+        self._compare_before_after(new_solution, f"Swap Route {route_idx} Pos {i}↔{j}")
+
+        return new_solution
+
+    def test_intra_route_relocate(self, route_idx, client_pos, new_pos, visualize=False):
+        """
+        Test un relocate intra-route.
+        
+        Args:
+            route_idx: Index de la route
+            client_pos: Position du client à déplacer
+            new_pos: Nouvelle position du client
+            visualize: Si True, affiche la visualisation avant/après
+        """
+        route = self.solution.routes[route_idx]
+
+        print(f"\n{'='*60}")
+        print(f"TEST INTRA-ROUTE RELOCATE - Route {route_idx}")
+        print(f"{'='*60}")
+
+        # Validation
+        if client_pos < 0 or new_pos < 0 or client_pos >= len(route.clients) or new_pos > len(route.clients):
+            print("❌ Positions invalides")
+            return None
+
+        if client_pos == new_pos:
+            print("⚠️ La position est identique")
+            return None
+
+        # Avant
+        client_id = route.clients[client_pos].id
+        print(f"\n📍 AVANT")
+        self._print_route_info(route, f"Route {route_idx}")
+        print(f"Position {client_pos} : Client {client_id} → À déplacer à position {new_pos}")
+
+        if visualize:
+            Visualizer.plot_single_route(self.solution, self.depot, route_idx)
+
+        # Opération
+        print(f"\n🔄 OPÉRATION")
+        print(f"Réassignation Client {client_id} : Position {client_pos} → Position {new_pos}")
+
+        new_solution = intra_route_relocate(self.solution, route_idx, client_pos, new_pos)
+
+        if new_solution is None:
+            print("❌ Relocate impossible")
+            return None
+
+        # Après
+        new_route = new_solution.routes[route_idx]
+        print(f"\n📍 APRÈS")
+        self._print_route_info(new_route, f"Route {route_idx}")
+
+        if visualize:
+            Visualizer.plot_single_route(new_solution, self.depot, route_idx)
+
+        # Comparaison
+        self._compare_before_after(new_solution, f"Relocate Route {route_idx} Pos {client_pos}→{new_pos}")
+
+        return new_solution
+
+    def test_multiple_operations(self, operations, visualize=False):
+        """
+        Teste une série d'opérations.
+        
+        Args:
+            operations: Liste de tuples (operation_type, params)
+                Ex: [('swap', (0, 0, 1)), ('relocate', (0, 1, 2))]
+            visualize: Si True, affiche la visualisation
+        """
+        current_solution = self.solution
+        results = []
+
+        print(f"\n{'*'*60}")
+        print(f"TEST MULTIPLE OPÉRATIONS ({len(operations)} opérations)")
+        print(f"{'*'*60}")
+
+        for op_type, params in operations:
+            if op_type == 'swap':
+                current_solution = self.test_intra_route_swap(*params, visualize=visualize)
+            elif op_type == 'relocate':
+                current_solution = self.test_intra_route_relocate(*params, visualize=visualize)
+            else:
+                print(f"❌ Opération inconnue : {op_type}")
+                continue
+
+            if current_solution is None:
+                print(f"⚠️ Arrêt à l'opération {op_type}")
+                break
+
+            results.append((op_type, current_solution))
+
+        # Résumé final
+        if results:
+            final_distance = solution_distance(current_solution, self.depot)
+            improvement = self.initial_distance - final_distance
+            print(f"\n{'='*60}")
+            print(f"RÉSUMÉ FINAL")
+            print(f"{'='*60}")
+            print(f"Nombre d'opérations réussies : {len(results)}")
+            print(f"Distance initiale : {self.initial_distance:.2f}")
+            print(f"Distance finale : {final_distance:.2f}")
+            print(f"Amélioration totale : {improvement:+.2f} ({(improvement/self.initial_distance)*100:+.2f}%)")
+            print(f"{'='*60}\n")
+
+        return current_solution
+
