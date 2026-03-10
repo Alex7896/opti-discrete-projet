@@ -20,8 +20,22 @@ def main():
     print("Nombre de routes :", len(solution.routes))
     print("Distance totale :", cost)
 
-    tester = NeighborhoodTest(solution, depot)
-    tester.test_intra_route_relocate(0, 1, 5, visualize=True)
 
 if __name__ == "__main__":
     main()
+
+    # Exemple d'utilisation du 2-opt
+    print("\n" + "="*60)
+    print("EXEMPLE D'UTILISATION DU 2-OPT")
+    print("="*60)
+
+    depot, clients, capacity = read_file("data/data101.vrp")
+    solution = random_solution(clients, capacity)
+
+    tester = NeighborhoodTest(solution, depot)
+
+    # Test du 2-opt sur la première route
+    print("Test du 2-opt sur la route 0 (positions 1 à 3)")
+    tester.test_intra_route_2opt(0, 1, 3, visualize=True)
+
+   

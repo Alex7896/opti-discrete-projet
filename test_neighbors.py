@@ -1,4 +1,4 @@
-from neighbors import intra_route_swap, intra_route_relocate
+from neighbors import intra_route_swap, intra_route_relocate, inter_route_swap, intra_route_2opt
 from utils import solution_distance, route_distance
 from visualizer import Visualizer
 
@@ -157,6 +157,67 @@ class NeighborhoodTest:
 
         return new_solution
 
+    def test_intra_route_2opt(self, route_idx, i, j, visualize=False):
+        """
+        Test un 2-opt intra-route.
+        
+        Args:
+            route_idx: Index de la route
+            i: Position de début du segment à inverser
+            j: Position de fin du segment à inverser
+            visualize: Si True, affiche la visualisation avant/après
+        """
+        route = self.solution.routes[route_idx]
+
+        print(f"\n{'='*60}")
+        print(f"TEST INTRA-ROUTE 2-OPT - Route {route_idx}")
+        print(f"{'='*60}")
+
+        # Validation
+        if i < 0 or j < 0 or i >= len(route.clients) or j >= len(route.clients):
+            print("❌ Indices invalides")
+            return None
+
+        if i >= j:
+            print("⚠️ Les indices ne forment pas un segment valide")
+            return None
+
+        # Avant
+        print(f"\n📍 AVANT")
+        self._print_route_info(route, f"Route {route_idx}")
+        print(f"Segment à inverser : positions {i} à {j}")
+        segment_before = [client.id for client in route.clients[i:j+1]]
+        print(f"Clients dans le segment : {segment_before}")
+
+        if visualize:
+            Visualizer.plot_single_route(self.solution, self.depot, route_idx)
+
+        # Opération
+        print(f"\n🔄 OPÉRATION 2-OPT")
+        print(f"Inversion du segment [{i}:{j+1}]")
+
+        new_solution = intra_route_2opt(self.solution, route_idx, i, j)
+
+        if new_solution is None:
+            print("❌ 2-opt impossible")
+            return None
+
+        # Après
+        new_route = new_solution.routes[route_idx]
+        print(f"\n📍 APRÈS")
+        self._print_route_info(new_route, f"Route {route_idx}")
+        segment_after = [client.id for client in new_route.clients[i:j+1]]
+        print(f"Clients dans le segment : {segment_after}")
+        print(f"Inversion : {segment_before} → {segment_after}")
+
+        if visualize:
+            Visualizer.plot_single_route(new_solution, self.depot, route_idx)
+
+        # Comparaison
+        self._compare_before_after(new_solution, f"2-opt Route {route_idx} [{i}:{j+1}]")
+
+        return new_solution
+
     def test_multiple_operations(self, operations, visualize=False):
         """
         Teste une série d'opérations.
@@ -178,6 +239,8 @@ class NeighborhoodTest:
                 current_solution = self.test_intra_route_swap(*params, visualize=visualize)
             elif op_type == 'relocate':
                 current_solution = self.test_intra_route_relocate(*params, visualize=visualize)
+            elif op_type == '2opt':
+                current_solution = self.test_intra_route_2opt(*params, visualize=visualize)
             else:
                 print(f"❌ Opération inconnue : {op_type}")
                 continue
