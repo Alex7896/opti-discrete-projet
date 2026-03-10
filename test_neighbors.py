@@ -218,6 +218,72 @@ class NeighborhoodTest:
 
         return new_solution
 
+    def test_inter_route_swap(self, route1_idx, client1_pos, route2_idx, client2_pos, visualize=False):
+        """
+        Test un swap inter-route.
+        
+        Args:
+            route1_idx: Index de la première route
+            client1_pos: Position du client dans la première route
+            route2_idx: Index de la deuxième route
+            client2_pos: Position du client dans la deuxième route
+            visualize: Si True, affiche la visualisation avant/après
+        """
+        if route1_idx == route2_idx:
+            print("⚠️ Routes identiques, utilisation du swap intra-route")
+            return self.test_intra_route_swap(route1_idx, client1_pos, client2_pos, visualize)
+
+        route1 = self.solution.routes[route1_idx]
+        route2 = self.solution.routes[route2_idx]
+
+        print(f"\n{'='*60}")
+        print(f"TEST INTER-ROUTE SWAP - Routes {route1_idx} ↔ {route2_idx}")
+        print(f"{'='*60}")
+
+        # Validation
+        if (client1_pos < 0 or client1_pos >= len(route1.clients) or
+            client2_pos < 0 or client2_pos >= len(route2.clients)):
+            print("❌ Positions invalides")
+            return None
+
+        # Avant
+        client1_id = route1.clients[client1_pos].id
+        client2_id = route2.clients[client2_pos].id
+        print(f"\n📍 AVANT")
+        self._print_route_info(route1, f"Route {route1_idx}")
+        self._print_route_info(route2, f"Route {route2_idx}")
+        print(f"Client {client1_id} (Route {route1_idx}, pos {client1_pos}) ↔️ Client {client2_id} (Route {route2_idx}, pos {client2_pos})")
+
+        if visualize:
+            Visualizer.plot_single_route(self.solution, self.depot, route1_idx)
+            Visualizer.plot_single_route(self.solution, self.depot, route2_idx)
+
+        # Opération
+        print(f"\n🔄 OPÉRATION INTER-ROUTE SWAP")
+        print(f"Échange Client {client1_id} ↔️ Client {client2_id}")
+
+        new_solution = inter_route_swap(self.solution, route1_idx, client1_pos, route2_idx, client2_pos)
+
+        if new_solution is None:
+            print("❌ Swap inter-route impossible (contrainte de capacité)")
+            return None
+
+        # Après
+        new_route1 = new_solution.routes[route1_idx]
+        new_route2 = new_solution.routes[route2_idx]
+        print(f"\n📍 APRÈS")
+        self._print_route_info(new_route1, f"Route {route1_idx}")
+        self._print_route_info(new_route2, f"Route {route2_idx}")
+
+        if visualize:
+            Visualizer.plot_single_route(new_solution, self.depot, route1_idx)
+            Visualizer.plot_single_route(new_solution, self.depot, route2_idx)
+
+        # Comparaison
+        self._compare_before_after(new_solution, f"Inter-swap R{route1_idx}↔R{route2_idx}")
+
+        return new_solution
+
     def test_multiple_operations(self, operations, visualize=False):
         """
         Teste une série d'opérations.
@@ -241,6 +307,8 @@ class NeighborhoodTest:
                 current_solution = self.test_intra_route_relocate(*params, visualize=visualize)
             elif op_type == '2opt':
                 current_solution = self.test_intra_route_2opt(*params, visualize=visualize)
+            elif op_type == 'inter_swap':
+                current_solution = self.test_inter_route_swap(*params, visualize=visualize)
             else:
                 print(f"❌ Opération inconnue : {op_type}")
                 continue
