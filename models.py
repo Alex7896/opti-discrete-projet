@@ -19,8 +19,20 @@ class Route:
         self.clients.append(client)
         self.load += client.demand
 
+    def copy(self):
+        new_route = Route(self.capacity)
+        new_route.clients = self.clients[:]   # copie de la liste
+        new_route.load = self.load
+        return new_route
+
 
 class Solution:
     def __init__(self):
         self.routes = []
         self.total_distance = 0
+
+    def copy(self):
+        new_solution = Solution()
+        new_solution.routes = [route.copy() for route in self.routes]
+        new_solution.total_distance = self.total_distance
+        return new_solution

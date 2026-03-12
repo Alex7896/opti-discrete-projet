@@ -13,6 +13,7 @@ def route_distance(route, depot):
         prev = client
 
     total += distance(prev, depot)
+    print(f"Route distance: {total:.2f}")
     return total
 
 
@@ -22,6 +23,7 @@ def solution_distance(solution, depot):
         total += route_distance(route, depot)
 
     solution.total_distance = total
+    print(f"Solution total distance: {total:.2f}")
     return total
 
 def minimum_vehicles(clients, capacity):
